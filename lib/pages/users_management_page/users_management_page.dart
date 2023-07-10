@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:um_core/um_core.dart';
-import 'package:user_management_web/widgets/confirmation_dialog.dart';
 
 class UsersManagementPage extends StatefulWidget {
   const UsersManagementPage({Key? key}) : super(key: key);
