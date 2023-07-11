@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:um_core/um_core.dart';
+import 'package:user_management_web/pages/widgets/tab_item.dart';
 
 class UsersManagementPage extends StatefulWidget {
   const UsersManagementPage({Key? key}) : super(key: key);
@@ -9,13 +10,22 @@ class UsersManagementPage extends StatefulWidget {
 }
 
 class _UsersManagementPageState extends State<UsersManagementPage> {
-  late bool isMobile;
+  late Stream<List<UserModel>> stream;
   double gridItemHeight = 130;
   final List<Tab> tabs = [
     const Tab(text: 'Approved'),
     const Tab(text: 'Pending'),
-    const Tab(text: 'Rejected',)
+    const Tab(
+      text: 'Rejected',
+    )
   ];
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    stream = UserFirestoreService().fetchAllFirestore();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,183 +35,87 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
           appBar: AppBar(
             automaticallyImplyLeading: false,
             elevation: 0,
-            title: const Text("Users", style: TextStyle(color: Colors.black54),),
-            bottom: TabBar(
-                tabs: tabs,
-              // isScrollable: true,
+            title: const Text(
+              "Users",
+              style: TextStyle(color: Colors.black54),
             ),
           ),
           body: LayoutBuilder(
-            builder: (context, constraints ){
-              if(constraints.maxWidth < 600){
+            builder: (context, constraints) {
+              late bool isMobile;
+              late bool isScrollable;
+              final width = constraints.maxWidth;
+              if (width < 600) {
                 isMobile = true;
-              }else{
+                isScrollable = width < 400;
+              } else {
                 isMobile = false;
+                isScrollable = false;
               }
               return SimpleStreamBuilder.simpler(
-                stream:  UserFirestoreService().fetchAllFirestore(),
+                stream: stream,
                 context: context,
-                builder: (data){
+                builder: (data) {
                   final List<UserModel> pending =
-                  data.where((e) => e.status == 'pending').toList();
+                      data.where((e) => e.status == UserAuthorization.pending.name).toList();
                   final List<UserModel> approved =
-                  data.where((e) => e.status == "approved").toList();
-                  final List<UserModel> rejected =
-                  data.where((e)=> e.status == UserAuthorization.rejected.name).toList();
+                      data.where((e) => e.status == UserAuthorization.approved.name).toList();
+                  final List<UserModel> rejected = data
+                      .where((e) => e.status == UserAuthorization.rejected.name)
+                      .toList();
 
-                  return TabBarView(
+                  return Column(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20,),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 20,),
-                            const TextWidget(
-                              title: 'Approved Requests',
-                              color: AppColors.primaryColor,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            const SizedBox(height: 20,),
-                            if(approved.isEmpty)...[
-                              const Expanded(
-                                  child: Center(
-                                    child: Text("Not any approved yet!!!"),
-                                  ))
-                            ]else...[
-                              Expanded(
-                                child: GridView.builder(
-                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: isMobile ? 2 : 3, // Number of columns in the grid
-                                      mainAxisSpacing: 8.0, // Spacing between rows
-                                      crossAxisSpacing: 8.0, // Spacing between columns
-                                      mainAxisExtent: gridItemHeight
-                                    // childAspectRatio: 4, // Ratio of item's width to its height
-                                  ),
-                                  itemCount:  approved.length,
-                                  itemBuilder: (context, index) {
-                                    return Padding(
-                                        padding: const EdgeInsets.only(bottom: 20),
-                                        child: UserDetailsItem(
-                                          userModel: approved[index],
-                                          // email: approved[index].email!,
-                                          // status: approved[index].status!,
-                                          // name: approved[index].name!,
-                                        )
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ],
+                      SizedBox(
+                        height: kToolbarHeight,
+                        width: double.infinity,
+                        // Set the width to fill the screen
+                        child: TabBar(
+                          tabs: tabs,
+                          isScrollable: isScrollable,
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20,),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 20,),
-                            const TextWidget(title: 'Pending Requests',
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryColor,
-                            ),
-                            const SizedBox(height: 20,),
-                            if(pending.isEmpty)...[
-                              const Expanded(child: Center(
-                                child: Text("No pending Activity."),
-                              ),)
-                            ]else...[
-                              Expanded(
-                                child: GridView.builder(
-                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: isMobile ? 2: 3, // Number of columns in the grid
-                                      mainAxisSpacing: 8.0, // Spacing between rows
-                                      crossAxisSpacing: 8.0, // Spacing between columns
-                                      mainAxisExtent: gridItemHeight
-                                    // childAspectRatio: 4, // Ratio of item's width to its height
-                                  ),
-                                  itemCount: pending.length,
-                                  itemBuilder: (context, index) {
-                                    return Padding(
-                                        padding: const EdgeInsets.only(bottom: 20),
-                                        child: UserDetailsItem(
-                                          userModel: pending[index],
-                                          // email: pending[index].email!,
-                                          // status: pending[index].status!,
-                                          // name: pending[index].name!,
-                                        )
-                                    );
-                                  },
-                                ),
-                              ),
-                            ]
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20,),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 20,),
-                            const TextWidget(
-                              title: 'Rejected Requests',
-                              color: AppColors.primaryColor,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            const SizedBox(height: 20,),
-                            if(rejected.isEmpty)...[
-                              const Expanded(
-                                  child: Center(
-                                    child: Text("Not any rejected activity yet"),
-                                  ))
-                            ]else...[
-                              Expanded(
-                                child: GridView.builder(
-                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: isMobile ? 2 : 3, // Number of columns in the grid
-                                      mainAxisSpacing: 8.0, // Spacing between rows
-                                      crossAxisSpacing: 8.0, // Spacing between columns
-                                      mainAxisExtent: gridItemHeight
-                                  ),
-                                  itemCount:  rejected.length,
-                                  itemBuilder: (context, index) {
-                                    return Padding(
-                                        padding: const EdgeInsets.only(bottom: 20),
-                                        child: UserDetailsItem(
-                                          userModel: rejected[index],
-                                        )
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
+                      Expanded(
+                          child: TabBarView(
+                        children: [
+                          PageViewTabItem(
+                            dataListOfUserModel: approved,
+                            title: 'Approved Requests',
+                            isMobile: isMobile,
+                            noDataTitle: "approved request",
+                            isWorkActivityPage: false,
+                            dataListOfDataModel: const [],
+                          ),
+                          PageViewTabItem(
+                            dataListOfUserModel: pending,
+                            title: 'Pending Requests',
+                            isMobile: isMobile,
+                            noDataTitle: "pending request",
+                            isWorkActivityPage: false,
+                            dataListOfDataModel: const [],
+                          ),
+                          PageViewTabItem(
+                            dataListOfUserModel: rejected,
+                            title: 'Rejected Requests',
+                            isMobile: isMobile,
+                            noDataTitle: "rejected request",
+                            isWorkActivityPage: false,
+                            dataListOfDataModel: const [],
+                          ),
+                        ],
+                      )),
                     ],
                   );
                 },
               );
             },
-          )
-      ),
+          )),
     );
   }
 }
 
-
-
-
 class UserDetailsItem extends StatelessWidget {
-  const UserDetailsItem({
-    Key? key,
-    required this.userModel
-  }) : super(key: key);
+  const UserDetailsItem({Key? key, required this.userModel}) : super(key: key);
 
   final UserModel userModel;
 
@@ -229,16 +143,15 @@ class UserDetailsItem extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            if(userModel.status! == UserAuthorization.approved.name)...[
+            if (userModel.status! == UserAuthorization.approved.name) ...[
               Align(
-                alignment: Alignment.bottomRight,
-                child: AuthorizationActionButton(
-                  title: "Reject",
-                  uAuth:  UserAuthorization.rejected.name,
-                  userModel: userModel,
-                )
-              )
-            ]else if(userModel.status! == UserAuthorization.pending.name)...[
+                  alignment: Alignment.bottomRight,
+                  child: AuthorizationActionButton(
+                    title: "Reject",
+                    uAuth: UserAuthorization.rejected.name,
+                    userModel: userModel,
+                  ))
+            ] else if (userModel.status! == UserAuthorization.pending.name) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -254,7 +167,7 @@ class UserDetailsItem extends StatelessWidget {
                   )
                 ],
               )
-            ]else...[
+            ] else ...[
               Align(
                 alignment: Alignment.bottomRight,
                 child: AuthorizationActionButton(
@@ -271,50 +184,57 @@ class UserDetailsItem extends StatelessWidget {
   }
 }
 
-class AuthorizationActionButton extends StatelessWidget {
-  AuthorizationActionButton({
-    Key? key,
-    required this.userModel,
-    required this.uAuth,
-    required this.title
-  }) : super(key: key);
+class AuthorizationActionButton extends StatefulWidget {
+  AuthorizationActionButton(
+      {Key? key,
+      required this.userModel,
+      required this.uAuth,
+      required this.title})
+      : super(key: key);
 
   final UserModel userModel;
   final String uAuth;
   final String title;
 
-  bool boolCheck = false;
-  void confirmation(bool check){
+  @override
+  State<AuthorizationActionButton> createState() => _AuthorizationActionButtonState();
+}
+
+class _AuthorizationActionButtonState extends State<AuthorizationActionButton> {
+  bool boolCheck = true;
+
+  void confirmation(bool check) {
     boolCheck = check;
   }
-
 
   @override
   Widget build(BuildContext context) {
     return TextButton(
-      onPressed: () async{
-        if(uAuth == UserAuthorization.rejected.name){
+      onPressed: () async {
+        if (widget.uAuth == UserAuthorization.rejected.name) {
           await ConfirmationDialogWidget(onConfirmation: confirmation).show(context);
-          if(boolCheck){
-            try{
-              userModel.status = uAuth;
-              await UserFirestoreService().updateFirestore(userModel);
-            }catch(e){
-              const PopUpDialog( 'Failed. Try Again').show(context);
-            }
-          }
-        }else{
-          try{
-            userModel.status = uAuth;
-            await UserFirestoreService().updateFirestore(userModel);
-          }catch(e){
-            const PopUpDialog( 'Failed. Try Again').show(context);
+        }
+        if (boolCheck) {
+          try {
+            widget.userModel.status = widget.uAuth;
+            await UserFirestoreService().updateFirestore(widget.userModel);
+            if(!mounted) return;
+            AppSnackBar.show(context,
+                widget.uAuth == UserAuthorization.approved.name ?
+                'User has been accepted successfully' : 'User has been rejected successfully'
+            );
+          } catch (e) {
+            if(!mounted) return;
+            const PopUpDialog('Failed. Try Again').show(context);
           }
         }
       },
-      child:  Padding(
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 7),
-        child: Text(title, style: const TextStyle(color: AppColors.primaryColor),),
+        child: Text(
+          widget.title,
+          style: const TextStyle(color: AppColors.primaryColor),
+        ),
       ),
     );
   }

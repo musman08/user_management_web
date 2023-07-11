@@ -1,11 +1,13 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:um_core/um_core.dart';
 import 'package:intl/intl.dart';
 import 'package:user_management_web/pages/widgets/filters.dart';
 
 class DetailedReportPage extends StatefulWidget {
-  const DetailedReportPage({Key? key,}) : super(key: key);
+  const DetailedReportPage({
+    Key? key,
+  }) : super(key: key);
+
   @override
   State<DetailedReportPage> createState() => _DetailedReportPageState();
 }
@@ -17,25 +19,31 @@ class _DetailedReportPageState extends State<DetailedReportPage> {
   String? userId;
   UserModel? selectedUser;
   late List<String?> daysList;
+  late Stream<List<AddDataModel>> stream;
 
-  List<String?> conversion(List<String?> days){
+  List<String?> conversion(List<String?> days) {
     final List<DateTime?> daysListForSorting =
-    days.map((e) => DateFormat('dd-MM-yyyy').parse(e!)).toList();
+        days.map((e) => DateFormat('dd-MM-yyyy').parse(e!)).toList();
     daysListForSorting.sort();
-    return daysListForSorting.map((e) => DateFormat('dd-MM-yyyy').format(e!) ).toList();
+    return daysListForSorting
+        .map((e) => DateFormat('dd-MM-yyyy').format(e!))
+        .toList();
   }
 
-  void selectedFilters(
-      String? userId,
-      DateTime? dateTime,
-      DateTimeRange? dateTimeRange,
-      UserModel ? selectedUser
-      ){
+  void selectedFilters(String? userId, DateTime? dateTime,
+      DateTimeRange? dateTimeRange, UserModel? selectedUser) {
     this.userId = userId;
     this.dateTime = dateTime;
     this.dateTimeRange = dateTimeRange;
     this.selectedUser = selectedUser;
-    setState(() { });
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    stream = AddWorkActivityFirestoreService().fetchAllFirestore();
   }
 
   @override
@@ -48,96 +56,116 @@ class _DetailedReportPageState extends State<DetailedReportPage> {
           style: TextStyle(color: Colors.black54),
         ),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          FiltersWidget(filters: selectedFilters),
-          Expanded(
-            child: SimpleStreamBuilder.simpler(
-              stream: AddWorkActivityFirestoreService().fetchAllFirestore(),
-              context: context,
-              builder: (data) {
-                if (userId != null) {
-                  data = data.where((e) => e.userId == userId).toList();
-                }
-                if (dateTime != null) {
-                  data = data.where((e) {
-                    final parsedDate =
-                        DateFormat('dd-MM-yyyy').parse(e.dateAndTime!);
-                    if (parsedDate == dateTime) {
-                      return true;
-                    } else {
-                      return false;
-                    }
-                  }).toList();
-                }
-                if (dateTimeRange != null) {
-                  data = data.where((e) {
-                    final parsedDate =
-                        DateFormat('dd-MM-yyyy').parse(e.dateAndTime!);
-                    print(parsedDate);
-                    DateTime updatedEndDate =
-                        dateTimeRange!.end.add(const Duration(days: 1));
-                    DateTime updatedStartDate =
-                        dateTimeRange!.start.subtract(const Duration(days: 1));
-                    if (parsedDate.isAfter(updatedStartDate) &&
-                        parsedDate.isBefore(updatedEndDate)) {
-                      return true;
-                    } else {
-                      return false;
-                    }
-                  }).toList();
-                }
-                daysList = data.map((e) => e.dateAndTime).toSet().toList();
-                daysList = conversion(daysList);
-                final List<AddDataModel> approved = data.where(
-                        (e) => e.status == UserAuthorization.approved.name).toList();
-                final List<AddDataModel> pending = data.where(
-                        (e) => e.status == UserAuthorization.pending.name).toList();
-                final List<AddDataModel> rejected = data.where(
-                        (e) => e.status == UserAuthorization.rejected.name).toList();
-                final List<AddDataModel> changeRequest = data.where(
-                        (e) => e.status == UserAuthorization.changeRequest.name).toList();
-                if(userId == null ){
-                  return const Center(
-                    child: TextWidget(
+      body:
+      LayoutBuilder(builder: (context, constraints) {
+        late bool isMobile;
+        if (constraints.maxWidth < 600) {
+          isMobile = true;
+        } else {
+          isMobile = false;
+        }
+        return
+          Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            FiltersWidget(
+              filters: selectedFilters,
+              isMobile: isMobile,
+            ),
+            Expanded(
+              child: SimpleStreamBuilder.simpler(
+                stream: stream,
+                context: context,
+                builder: (data) {
+                  if (userId != null) {
+                    data = data.where((e) => e.userId == userId).toList();
+                  }
+                  if (dateTime != null) {
+                    data = data.where((e) {
+                      final parsedDate =
+                          DateFormat('dd-MM-yyyy').parse(e.dateAndTime!);
+                      if (parsedDate == dateTime) {
+                        return true;
+                      } else {
+                        return false;
+                      }
+                    }).toList();
+                  }
+                  if (dateTimeRange != null) {
+                    data = data.where((e) {
+                      final parsedDate =
+                          DateFormat('dd-MM-yyyy').parse(e.dateAndTime!);
+                      print(parsedDate);
+                      DateTime updatedEndDate =
+                          dateTimeRange!.end.add(const Duration(days: 1));
+                      DateTime updatedStartDate = dateTimeRange!.start
+                          .subtract(const Duration(days: 1));
+                      if (parsedDate.isAfter(updatedStartDate) &&
+                          parsedDate.isBefore(updatedEndDate)) {
+                        return true;
+                      } else {
+                        return false;
+                      }
+                    }).toList();
+                  }
+                  daysList = data.map((e) => e.dateAndTime).toSet().toList();
+                  daysList = conversion(daysList);
+                  final List<AddDataModel> approved = data
+                      .where((e) => e.status == UserAuthorization.approved.name)
+                      .toList();
+                  final List<AddDataModel> pending = data
+                      .where((e) => e.status == UserAuthorization.pending.name)
+                      .toList();
+                  final List<AddDataModel> rejected = data
+                      .where((e) => e.status == UserAuthorization.rejected.name)
+                      .toList();
+                  final List<AddDataModel> changeRequest = data
+                      .where((e) =>
+                          e.status == UserAuthorization.changeRequest.name)
+                      .toList();
+                  if (userId == null) {
+                    return const Center(
+                        child: TextWidget(
                       title: 'Select user to see the report',
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
-                    )
-                  );
-                }else{
-
-                  return DetailedReportPageView(
-                    approved: approved,
-                    pending: pending,
-                    rejected: rejected,
-                    userModel: selectedUser!,
-                    changeRequest: changeRequest,
-                    dateList: daysList,
-                  );
-                }
-              },
-            ),
-          )
-        ],
+                    ));
+                  } else {
+                    return DetailedReportPageView(
+                      approved: approved,
+                      pending: pending,
+                      rejected: rejected,
+                      userModel: selectedUser!,
+                      changeRequest: changeRequest,
+                      dateList: daysList,
+                      // isMobile: isMobile,
+                    );
+                  }
+                },
+              ),
+            )
+          ],
+        );
+      }
       ),
     );
   }
 }
 
 class DetailedReportPageView extends StatelessWidget {
-  DetailedReportPageView({
-    Key? key,
-    required this.pending,
-    required this.approved,
-    required this.rejected,
-    required this.userModel,
-    required this.changeRequest,
-    required this.dateList,
-  }) : super(key: key);
+  const DetailedReportPageView(
+      {Key? key,
+      required this.pending,
+      required this.approved,
+      required this.rejected,
+      required this.userModel,
+      required this.changeRequest,
+      required this.dateList,
+      // required this.isMobile
+      })
+      : super(key: key);
 
   final List<AddDataModel> pending;
   final List<AddDataModel> approved;
@@ -145,15 +173,15 @@ class DetailedReportPageView extends StatelessWidget {
   final List<AddDataModel> changeRequest;
   final UserModel userModel;
   final List<String?> dateList;
+  // final bool isMobile;
 
-  bool ? isMobile;
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-      child: Center(
-        child: LayoutBuilder(
-          builder: (context, constraints){
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+        child: Center(
+          child: LayoutBuilder(builder: (context, constraints){
+            bool isMobile;
             if(constraints.maxWidth < 600){
               isMobile = true;
             }else{
@@ -161,24 +189,26 @@ class DetailedReportPageView extends StatelessWidget {
             }
             return Row(
               children: [
-              Expanded(
-                child: SizedBox(
-                  height: 400,
-                  child: Card(
-                    elevation: 5,
-                    child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 10,),
-                              Stack(
-                                  children: [
+                Expanded(
+                    child: SizedBox(
+                      height: 400,
+                      child: Card(
+                        elevation: 5,
+                        child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Stack(children: [
                                     if (userModel.profilePicture != null) ...[
                                       CircleAvatar(
-                                        backgroundImage: NetworkImage(userModel.profilePicture!),
+                                        backgroundImage:
+                                        NetworkImage(userModel.profilePicture!),
                                         minRadius: 50,
                                         maxRadius: 50,
                                       ),
@@ -197,91 +227,110 @@ class DetailedReportPageView extends StatelessWidget {
                                     Positioned(
                                         bottom: 4,
                                         right: 4,
-                                        child: userModel.status == UserAuthorization.approved.name
+                                        child: userModel.status ==
+                                            UserAuthorization.approved.name
                                             ? const VerifiedIcon()
-                                            : userModel.status == UserAuthorization.rejected.name ?
-                                        const RejectedIcon() :
-                                        const PendingIcon()
+                                            : userModel.status ==
+                                            UserAuthorization.rejected.name
+                                            ? const RejectedIcon()
+                                            : const PendingIcon()),
+                                  ]),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  TextWidget(
+                                    title: userModel.name!,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                  const SizedBox(
+                                    height: 5,
+                                  ),
+                                  TextWidget(
+                                    title: userModel.email!,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black54,
+                                  ),
+                                  const SizedBox(
+                                    height: 30,
+                                  ),
+                                  TextWidget(
+                                    title:
+                                    'Approved Activities: ${approved.length.toString()}',
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  TextWidget(
+                                    title:
+                                    'Pending Activities: ${pending.length.toString()}',
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  TextWidget(
+                                    title:
+                                    'Rejected Activities: ${rejected.length.toString()}',
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  TextWidget(
+                                    title:
+                                    'Change Request Activities: ${changeRequest.length.toString()}',
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                  if (isMobile) ...[
+                                    const SizedBox(
+                                      height: 30,
                                     ),
+                                    SecondColumn(
+                                        dateList: dateList, isMobile: isMobile)
                                   ]
+                                ],
                               ),
-                              const SizedBox(height: 10,),
-                              TextWidget(
-                                title: userModel.name!,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ),
-                              const SizedBox(height: 5,),
-                              TextWidget(
-                                title: userModel.email!,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black54,
-                              ),
-                              const SizedBox(height: 30,),
-                              TextWidget(
-                                title:  'Approved Activities: ${approved.length.toString()}',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                              const SizedBox(height: 10,),
-                              TextWidget(
-                                title:  'Pending Activities: ${pending.length.toString()}',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                              const SizedBox(height: 10,),
-                              TextWidget(
-                                title: 'Rejected Activities: ${rejected.length.toString()}',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                              const SizedBox(height: 10,),
-                              TextWidget(
-                                title:  'Change Request Activities: ${changeRequest.length.toString()}',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                              if(isMobile!)...[
-                                const SizedBox(height: 30,),
-                                SecondColumn(dateList: dateList, isMobile: isMobile!)
-                              ]
-                            ],
-                          ),
-                        )
-                    ),
-                  ),
-                )),
-                if(!isMobile!)...[
-                  const SizedBox(width: 20,),
-                  Expanded(
-                    child: SizedBox(
-                      height: 400,
-                      child: Card(
-                        elevation: 5,
-                        child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: SecondColumn(dateList: dateList, isMobile: isMobile! ,)
-                        ),
+                            )),
                       ),
-                    )
-                  )
+                    )),
+                if (!isMobile) ...[
+                  const SizedBox(
+                    width: 20,
+                  ),
+                  Expanded(
+                      child: SizedBox(
+                        height: 400,
+                        child: Card(
+                          elevation: 5,
+                          child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: SecondColumn(
+                                dateList: dateList,
+                                isMobile: isMobile,
+                              )),
+                        ),
+                      ))
                 ]
               ],
             );
-          },
-        ),
-      )
-    );
+          },)
+        ));
   }
 }
 
 class SecondColumn extends StatelessWidget {
-  const SecondColumn({Key? key,
-    required this.dateList,
-    required this.isMobile}) : super(key: key);
+  const SecondColumn({Key? key, required this.dateList, required this.isMobile})
+      : super(key: key);
   final List<String?> dateList;
   final bool isMobile;
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -294,12 +343,12 @@ class SecondColumn extends StatelessWidget {
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
-          if(dateList.isEmpty)...[
+          if (dateList.isEmpty) ...[
             const Align(
               alignment: Alignment.center,
               child: Text('No work Activity in selected days'),
             )
-          ]else...[
+          ] else ...[
             ListView.builder(
                 shrinkWrap: true,
                 itemCount: dateList.length,
@@ -314,5 +363,3 @@ class SecondColumn extends StatelessWidget {
     );
   }
 }
-
-

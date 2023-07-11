@@ -58,6 +58,7 @@ class SideBar extends StatelessWidget {
                 icon: Icons.logout_rounded,
                 menuItemName: 'Log Out',
                 onTap: (){
+                  AppData.clear();
                   AppNavigator.pushAndRemoveUntil(context, const LoginScreen());
                 },
                 itemColor: selectedValue == SideBarItemColor.logOut ? true : false,

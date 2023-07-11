@@ -12,7 +12,6 @@ class SideBarMenuController with ChangeNotifier {
     UsersManagementPage(),
     WorkActivitiesPage(),
     DetailedReportPage(),
-    // LoginScreen(),
   ];
 
   SideBarItemColor localSelectedValue = SideBarItemColor.usersManagement;
@@ -38,9 +37,4 @@ class SideBarMenuController with ChangeNotifier {
     _mainPageWidget = pages[2];
     notifyListeners();
   }
-  // void setLogOutMenuItem() {
-  //   localSelectedValue = SideBarItemColor.logOut;
-  //   _mainPageWidget = pages[3];
-  //   notifyListeners();
-  // }
 }

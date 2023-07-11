@@ -20,17 +20,10 @@ class SideBarMenuItem extends StatelessWidget {
     Color iconColor, containerColor, textColor;
     if(itemColor == false){
       iconColor = Colors.grey[600]!;
-      // iconColor = Colors.white;
-      // textColor = Colors.white;
-      // iconColor = AppColors.primaryColor.withOpacity(0.3);
       containerColor = Colors.transparent;
     }else{
       iconColor = AppColors.primaryColor;
-      // textColor = Colors.black;
-      // iconColor = Colors.blue[600]!;
-      // containerColor = Colors.blue[100]!;
       containerColor  = AppColors.primaryColor.withOpacity(0.2);
-      // containerColor = Colors.white;
     }
     return InkWell(
       onTap: onTap,
